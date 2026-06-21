@@ -47,6 +47,7 @@ jobs:
 
           wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
+          export PATH="/usr/bin:/usr/local/bin:$PATH"
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root StemlabSlicer.AppImage
           rm -rf squashfs-root appimagetool
 
