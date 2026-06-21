@@ -18,14 +18,18 @@ else
   echo "[1/3] OrcaSlicer already exists — skipping"
 fi
 
-# 2. Create desktop shortcut
+# 2. Download icon + create desktop shortcut
+ICON="$HOME/.local/share/icons/orcaslicer-chula.png"
+mkdir -p "$(dirname "$ICON")"
+wget -q -O "$ICON" "https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/icon.png"
+
 DESKTOP="$HOME/.local/share/applications/orcaslicer.desktop"
 mkdir -p "$(dirname "$DESKTOP")"
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
 Name=OrcaSlicer
 Exec=$APPIMAGE
-Icon=orcaslicer
+Icon=$ICON
 Type=Application
 Categories=Graphics;
 EOF
