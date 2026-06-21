@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Snapmaker U1-1",
+    "ip": "10.15.5.66",
+    "apikey": "d24293eb7f22427d9882d633d59f81e4"
+  },
+  {
+    "name": "Snapmaker U1-2",
+    "ip": "10.15.5.160",
+    "apikey": "f9e7ee5e738748c48bc04858f0fb6eea"
+  },
+  {
+    "name": "Snapmaker U1-3",
+    "ip": "10.15.5.152",
+    "apikey": "25f37875b8914dcc9481b1ac5de50997"
+  },
+  {
+    "name": "Snapmaker U1-4",
+    "ip": "10.15.5.69",
+    "apikey": "0fce7c7d4bd64b81872a959e4ac39d97"
+  },
+  {
+    "name": "Snapmaker U1-5",
+    "ip": "10.15.5.164",
+    "apikey": "6d2ef4dcd78e46d68c5d0f998bcf23ad"
+  },
+  {
+    "name": "Snapmaker U1-6",
+    "ip": "10.15.5.174",
+    "apikey": "f4861b66404e4b5680ba5a5d174504e0"
+  },
+  {
+    "name": "Snapmaker U1-7",
+    "ip": "10.15.5.165",
+    "apikey": "d972cc538b6547e2a239ac78e150d419"
+  },
+  {
+    "name": "Snapmaker U1-8",
+    "ip": "10.15.5.70",
+    "apikey": "82dc1d73b4de48c4bd184d28371df314"
+  }
+]
