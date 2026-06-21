@@ -33,6 +33,7 @@ jobs:
 
       - name: Patch AppImage (icon + embedded printer presets)
         run: |
+          export PATH="/usr/bin:/usr/local/bin:$PATH"
           ./StemlabSlicer.AppImage --appimage-extract 2>/dev/null
 
           # Replace icon
