@@ -12,7 +12,7 @@ on:
 
 jobs:
   release:
-    runs-on: node-34-custom
+    runs-on: node-34-snapmaker
     permissions:
       contents: write
 
