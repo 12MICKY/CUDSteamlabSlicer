@@ -1,17 +1,17 @@
 #!/bin/bash
 set -e
 
-APPIMAGE_URL="https://github.com/12MICKY/snapmaker-printers/releases/latest/download/OrcaSlicer.AppImage"
+APPIMAGE_URL="https://github.com/12MICKY/snapmaker-printers/releases/latest/download/StemlabSlicer.AppImage"
 INSTALL_DIR="$HOME/Applications"
-APPIMAGE="$INSTALL_DIR/OrcaSlicer.AppImage"
+APPIMAGE="$INSTALL_DIR/StemlabSlicer.AppImage"
 CONFIG_DIR="$HOME/.config/OrcaSlicer/user/default/machine"
 
-echo "=== OrcaSlicer + Snapmaker U1 Setup ==="
+echo "=== StemlabSlicer + Snapmaker U1 Setup ==="
 
 # 1. Download OrcaSlicer
 mkdir -p "$INSTALL_DIR"
 if [ ! -f "$APPIMAGE" ]; then
-  echo "[1/3] Downloading OrcaSlicer..."
+  echo "[1/3] Downloading StemlabSlicer..."
   wget -q --show-progress -O "$APPIMAGE" "$APPIMAGE_URL"
   chmod +x "$APPIMAGE"
 else
@@ -27,7 +27,7 @@ DESKTOP="$HOME/.local/share/applications/orcaslicer.desktop"
 mkdir -p "$(dirname "$DESKTOP")"
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
-Name=OrcaSlicer
+Name=StemlabSlicer
 Exec=$APPIMAGE
 Icon=$ICON
 Type=Application
@@ -66,5 +66,5 @@ setup_printer "U1-8" "10.15.5.70"  "82dc1d73b4de48c4bd184d28371df314"
 
 echo "[3/3] Printer configs installed (U1-1 to U1-8)"
 echo ""
-echo "Done! Launch OrcaSlicer:"
+echo "Done! Launch StemlabSlicer:"
 echo "  $APPIMAGE"

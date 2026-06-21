@@ -23,21 +23,25 @@ jobs:
         run: |
           LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | python3 -c "import sys,json; r=json.load(sys.stdin); [print(a['browser_download_url']) for a in r['assets'] if 'AppImage_Ubuntu2404_V' in a['name'] and 'aarch64' not in a['name']]" | head -1)
           echo "Downloading: $LATEST"
-          wget -q --show-progress -O OrcaSlicer.AppImage "$LATEST"
-          chmod +x OrcaSlicer.AppImage
-          echo "SIZE=$(du -sh OrcaSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
+          wget -q --show-progress -O StemlabSlicer.AppImage "$LATEST"
+          chmod +x StemlabSlicer.AppImage
+          echo "SIZE=$(du -sh StemlabSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
           echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
 
       - name: Patch AppImage icon (Chulalongkorn University logo)
         run: |
-          ./OrcaSlicer.AppImage --appimage-extract 2>/dev/null
+          ./StemlabSlicer.AppImage --appimage-extract 2>/dev/null
+          # Replace icon
           cp icon.png squashfs-root/OrcaSlicer.png
           mkdir -p squashfs-root/usr/share/icons/hicolor/192x192/apps
           cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/OrcaSlicer.png
           cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/orca-slicer.png
+          # Rename app to StemlabSlicer
+          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/*.desktop
+          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/usr/share/applications/*.desktop 2>/dev/null || true
           wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
-          ARCH=x86_64 ./appimagetool squashfs-root OrcaSlicer.AppImage 2>&1 | tail -3
+          ARCH=x86_64 ./appimagetool squashfs-root StemlabSlicer.AppImage 2>&1 | tail -3
           rm -rf squashfs-root appimagetool
 
       - name: Bundle printer configs
@@ -70,7 +74,7 @@ jobs:
             ```
 
             ### Option 2 — Manual download
-            1. Download **OrcaSlicer.AppImage** → run directly
+            1. Download **StemlabSlicer.AppImage** → run directly
             2. Download **snapmaker-u1-configs.tar.gz** → extract → `bash install.sh`
 
             ---
@@ -89,7 +93,7 @@ jobs:
 
             **AppImage size:** ${{ env.SIZE }}
           files: |
-            OrcaSlicer.AppImage
+            StemlabSlicer.AppImage
             snapmaker-u1-configs.tar.gz
             install.sh
           make_latest: true
