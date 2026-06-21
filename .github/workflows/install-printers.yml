@@ -1,0 +1,18 @@
+name: Install Printer Configs
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: 'Self-hosted runner label'
+        required: false
+        default: 'self-hosted'
+
+jobs:
+  install:
+    runs-on: ${{ github.event.inputs.runner_label || 'self-hosted' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install printer configs
+        run: bash printer-setup.sh
