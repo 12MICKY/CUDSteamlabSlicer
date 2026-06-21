@@ -28,6 +28,18 @@ jobs:
           echo "SIZE=$(du -sh OrcaSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
           echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
 
+      - name: Patch AppImage icon (Chulalongkorn University logo)
+        run: |
+          ./OrcaSlicer.AppImage --appimage-extract 2>/dev/null
+          cp icon.png squashfs-root/OrcaSlicer.png
+          mkdir -p squashfs-root/usr/share/icons/hicolor/192x192/apps
+          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/OrcaSlicer.png
+          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/orca-slicer.png
+          wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool squashfs-root OrcaSlicer.AppImage 2>&1 | tail -3
+          rm -rf squashfs-root appimagetool
+
       - name: Bundle printer configs
         run: |
           tar -czf snapmaker-u1-configs.tar.gz \
