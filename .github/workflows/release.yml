@@ -166,7 +166,8 @@ jobs:
           hdiutil detach /tmp/orca_mount -quiet
 
           /usr/libexec/PlistBuddy -c "Set :CFBundleName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
 
           mkdir -p AppIcon.iconset
           for size in 16 32 64 128 256 512 1024; do
