@@ -9,6 +9,7 @@ on:
       - 'printer-setup.sh'
       - 'printers.json'
       - 'printers.csv'
+      - '.github/workflows/release.yml'
 
 jobs:
   release:
@@ -28,9 +29,10 @@ jobs:
           echo "SIZE=$(du -sh StemlabSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
           echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
 
-      - name: Patch AppImage icon (Chulalongkorn University logo)
+      - name: Patch AppImage (icon + embedded printer presets)
         run: |
           ./StemlabSlicer.AppImage --appimage-extract 2>/dev/null
+
           # Replace icon
           cp icon.png squashfs-root/OrcaSlicer.png
           mkdir -p squashfs-root/usr/share/icons/hicolor/192x192/apps
@@ -39,6 +41,49 @@ jobs:
           # Rename app to StemlabSlicer
           sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/*.desktop
           sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/usr/share/applications/*.desktop 2>/dev/null || true
+
+          # Embed Snapmaker U1 presets as read-only system profiles
+          MACHINE_DIR="squashfs-root/resources/profiles/Snapmaker/machine"
+          embed_printer() {
+            local num="$1" ip="$2" apikey="$3"
+            cat > "$MACHINE_DIR/Snapmaker U1-${num}.json" <<ENDJSON
+{
+    "type": "machine",
+    "setting_id": "SM_U1_${num}",
+    "name": "Snapmaker U1-${num}",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Snapmaker U1 (0.4 nozzle)",
+    "print_host": "${ip}",
+    "printhost_apikey": "${apikey}",
+    "printer_settings_id": "Snapmaker U1-${num}"
+}
+ENDJSON
+          }
+          embed_printer "1" "10.15.5.66"  "d24293eb7f22427d9882d633d59f81e4"
+          embed_printer "2" "10.15.5.160" "f9e7ee5e738748c48bc04858f0fb6eea"
+          embed_printer "3" "10.15.5.152" "25f37875b8914dcc9481b1ac5de50997"
+          embed_printer "4" "10.15.5.69"  "0fce7c7d4bd64b81872a959e4ac39d97"
+          embed_printer "5" "10.15.5.164" "6d2ef4dcd78e46d68c5d0f998bcf23ad"
+          embed_printer "6" "10.15.5.174" "f4861b66404e4b5680ba5a5d174504e0"
+          embed_printer "7" "10.15.5.165" "d972cc538b6547e2a239ac78e150d419"
+          embed_printer "8" "10.15.5.70"  "82dc1d73b4de48c4bd184d28371df314"
+
+          # Register presets in Snapmaker.json machine_list
+          python3 - "squashfs-root/resources/profiles/Snapmaker.json" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    d = json.load(f)
+existing = {e["name"] for e in d["machine_list"]}
+for i in range(1, 9):
+    name = f"Snapmaker U1-{i}"
+    if name not in existing:
+        d["machine_list"].append({"name": name, "sub_path": f"machine/Snapmaker U1-{i}.json"})
+with open(path, "w") as f:
+    json.dump(d, f, indent=4)
+PYEOF
+
           wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool squashfs-root StemlabSlicer.AppImage 2>&1 | tail -3
