@@ -6,66 +6,256 @@ on:
     branches: [main]
     paths:
       - 'install.sh'
+      - 'install.ps1'
       - 'printer-setup.sh'
       - 'printers.json'
-      - 'printers.csv'
       - 'embed_printers.py'
+      - 'icon.png'
       - '.github/workflows/release.yml'
 
 jobs:
-  release:
+  build-linux:
+    name: Linux (AppImage)
     runs-on: node-34-custom
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.download.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OrcaSlicer AppImage
+        id: download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
+            --jq '.assets[] | select(.name | test("AppImage_Ubuntu2404_V") and (test("aarch64") | not)) | .browser_download_url' | head -1)
+          echo "Downloading: $LATEST"
+          wget -q --show-progress -O OrcaSlicer.AppImage "$LATEST"
+          chmod +x OrcaSlicer.AppImage
+          echo "version=$(basename "$LATEST" | grep -oP 'V[\d.]+')" >> $GITHUB_OUTPUT
+
+      - name: Install build dependencies
+        run: sudo apt-get install -y squashfs-tools
+
+      - name: Patch AppImage
+        run: |
+          ./OrcaSlicer.AppImage --appimage-extract 2>/dev/null
+
+          cp icon.png squashfs-root/OrcaSlicer.png
+          mkdir -p squashfs-root/usr/share/icons/hicolor/192x192/apps
+          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/OrcaSlicer.png
+          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/orca-slicer.png
+          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/*.desktop
+          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/usr/share/applications/*.desktop 2>/dev/null || true
+
+          python3 embed_printers.py squashfs-root
+
+          wget -q -O runtime "https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-x86_64"
+          mksquashfs squashfs-root squashfs.img -noappend -comp xz -b 1M -root-owned -no-progress
+          cat runtime squashfs.img > StemlabSlicer_Linux.AppImage
+          printf '\x41\x49\x02' | dd of=StemlabSlicer_Linux.AppImage bs=1 seek=8 conv=notrunc 2>/dev/null
+          chmod +x StemlabSlicer_Linux.AppImage
+          rm -rf squashfs-root squashfs.img runtime OrcaSlicer.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: StemlabSlicer_Linux.AppImage
+          retention-days: 1
+
+  build-windows:
+    name: Windows (Portable ZIP)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OrcaSlicer Windows installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $url = (gh api repos/OrcaSlicer/OrcaSlicer/releases/latest `
+            --jq '.assets[] | select(.name | test("Windows") and test("\\.exe$")) | .browser_download_url') `
+            -split "`n" | Where-Object { $_ } | Select-Object -First 1
+          Write-Host "Downloading: $url"
+          Invoke-WebRequest -Uri $url -OutFile OrcaSlicer_setup.exe -UseBasicParsing
+
+      - name: Install, patch, and zip
+        shell: pwsh
+        run: |
+          $installDir = "C:\StemlabSlicer"
+          Start-Process -FilePath ".\OrcaSlicer_setup.exe" -ArgumentList "/S /D=$installDir" -Wait
+
+          if (-not (Test-Path "$installDir\resources\profiles\Snapmaker.json")) {
+            Write-Error "Install failed: resources not found at $installDir"
+            Get-ChildItem $installDir -Recurse -Name | Select-Object -First 30
+            exit 1
+          }
+
+          python embed_printers.py $installDir
+
+          if (Test-Path "$installDir\OrcaSlicer.exe") {
+            Rename-Item "$installDir\OrcaSlicer.exe" "StemlabSlicer.exe"
+          }
+
+          Compress-Archive -Path "$installDir\*" -DestinationPath StemlabSlicer_Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: StemlabSlicer_Windows.zip
+          retention-days: 1
+
+  build-macos-intel:
+    name: macOS Intel (DMG)
+    runs-on: macos-13
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OrcaSlicer macOS Intel DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
+            --jq '.assets[] | select(.name | test("Mac_V") and (test("arm64") | not) and test("\\.dmg$")) | .browser_download_url' | head -1)
+          echo "Downloading: $LATEST"
+          curl -L --progress-bar -o OrcaSlicer.dmg "$LATEST"
+
+      - name: Patch and repackage
+        run: |
+          hdiutil attach OrcaSlicer.dmg -quiet -nobrowse -readonly -mountpoint /tmp/orca_mount
+          cp -r "/tmp/orca_mount/OrcaSlicer.app" ./StemlabSlicer.app
+          hdiutil detach /tmp/orca_mount -quiet
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
+
+          mkdir -p AppIcon.iconset
+          for size in 16 32 64 128 256 512 1024; do
+            sips -z $size $size icon.png --out AppIcon.iconset/icon_${size}.png 2>/dev/null
+          done
+          cp AppIcon.iconset/icon_16.png   AppIcon.iconset/icon_16x16.png
+          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_16x16@2x.png
+          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_32x32.png
+          cp AppIcon.iconset/icon_64.png   AppIcon.iconset/icon_32x32@2x.png
+          cp AppIcon.iconset/icon_128.png  AppIcon.iconset/icon_128x128.png
+          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_128x128@2x.png
+          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_256x256.png
+          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_256x256@2x.png
+          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_512x512.png
+          cp AppIcon.iconset/icon_1024.png AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns AppIcon.iconset -o AppIcon.icns
+          find StemlabSlicer.app/Contents/Resources -name "*.icns" | while read f; do
+            cp AppIcon.icns "$f"
+          done
+
+          python3 embed_printers.py StemlabSlicer.app/Contents/Resources profiles
+
+          codesign --remove-signature StemlabSlicer.app || true
+          codesign --force --deep --sign - StemlabSlicer.app
+
+          hdiutil create -srcfolder StemlabSlicer.app \
+            -volname "StemlabSlicer" -fs HFS+ -format UDZO \
+            -o StemlabSlicer_Mac.dmg
+
+          rm -rf StemlabSlicer.app AppIcon.iconset AppIcon.icns OrcaSlicer.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel-dmg
+          path: StemlabSlicer_Mac.dmg
+          retention-days: 1
+
+  build-macos-arm:
+    name: macOS Apple Silicon (DMG)
+    runs-on: macos-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OrcaSlicer macOS ARM DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
+            --jq '.assets[] | select(.name | test("Mac_arm64_V") and test("\\.dmg$")) | .browser_download_url' | head -1)
+          echo "Downloading: $LATEST"
+          curl -L --progress-bar -o OrcaSlicer_arm64.dmg "$LATEST"
+
+      - name: Patch and repackage
+        run: |
+          hdiutil attach OrcaSlicer_arm64.dmg -quiet -nobrowse -readonly -mountpoint /tmp/orca_mount
+          cp -r "/tmp/orca_mount/OrcaSlicer.app" ./StemlabSlicer.app
+          hdiutil detach /tmp/orca_mount -quiet
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
+
+          mkdir -p AppIcon.iconset
+          for size in 16 32 64 128 256 512 1024; do
+            sips -z $size $size icon.png --out AppIcon.iconset/icon_${size}.png 2>/dev/null
+          done
+          cp AppIcon.iconset/icon_16.png   AppIcon.iconset/icon_16x16.png
+          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_16x16@2x.png
+          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_32x32.png
+          cp AppIcon.iconset/icon_64.png   AppIcon.iconset/icon_32x32@2x.png
+          cp AppIcon.iconset/icon_128.png  AppIcon.iconset/icon_128x128.png
+          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_128x128@2x.png
+          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_256x256.png
+          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_256x256@2x.png
+          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_512x512.png
+          cp AppIcon.iconset/icon_1024.png AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns AppIcon.iconset -o AppIcon.icns
+          find StemlabSlicer.app/Contents/Resources -name "*.icns" | while read f; do
+            cp AppIcon.icns "$f"
+          done
+
+          python3 embed_printers.py StemlabSlicer.app/Contents/Resources profiles
+
+          codesign --remove-signature StemlabSlicer.app || true
+          codesign --force --deep --sign - StemlabSlicer.app
+
+          hdiutil create -srcfolder StemlabSlicer.app \
+            -volname "StemlabSlicer" -fs HFS+ -format UDZO \
+            -o StemlabSlicer_Mac_arm64.dmg
+
+          rm -rf StemlabSlicer.app AppIcon.iconset AppIcon.icns OrcaSlicer_arm64.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm-dmg
+          path: StemlabSlicer_Mac_arm64.dmg
+          retention-days: 1
+
+  release:
+    name: Publish Release
+    needs: [build-linux, build-windows, build-macos-intel, build-macos-arm]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download OrcaSlicer AppImage
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest --jq '.assets[] | select(.name | test("AppImage_Ubuntu2404_V") and (test("aarch64") | not)) | .browser_download_url' | head -1)
-          echo "Downloading: $LATEST"
-          wget -q --show-progress -O StemlabSlicer.AppImage "$LATEST"
-          chmod +x StemlabSlicer.AppImage
-          echo "SIZE=$(du -sh StemlabSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
-          echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
-
-      - name: Install build dependencies
-        run: sudo apt-get install -y squashfs-tools file
-
-      - name: Patch AppImage (icon + embedded printer presets)
-        run: |
-          ./StemlabSlicer.AppImage --appimage-extract 2>/dev/null
-
-          # Replace icon
-          cp icon.png squashfs-root/OrcaSlicer.png
-          mkdir -p squashfs-root/usr/share/icons/hicolor/192x192/apps
-          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/OrcaSlicer.png
-          cp icon.png squashfs-root/usr/share/icons/hicolor/192x192/apps/orca-slicer.png
-          # Rename app to StemlabSlicer
-          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/*.desktop
-          sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/usr/share/applications/*.desktop 2>/dev/null || true
-
-          # Embed Snapmaker U1 presets as read-only system profiles
-          python3 embed_printers.py squashfs-root
-
-          wget -q -O runtime "https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-x86_64"
-          mksquashfs squashfs-root squashfs.img -noappend -comp xz -b 1M -root-owned -no-progress
-          cat runtime squashfs.img > StemlabSlicer.AppImage
-          printf '\x41\x49\x02' | dd of=StemlabSlicer.AppImage bs=1 seek=8 conv=notrunc 2>/dev/null
-          chmod +x StemlabSlicer.AppImage
-          rm -rf squashfs-root squashfs.img runtime
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
 
       - name: Bundle printer configs
         run: |
-          tar -czf snapmaker-u1-configs.tar.gz \
-            printer-setup.sh \
-            printers.json \
-            printers.csv \
-            install.sh \
-            README.md
+          tar -czf dist/snapmaker-u1-configs.tar.gz \
+            printer-setup.sh printers.json printers.csv install.sh install.ps1 README.md
 
       - name: Delete old latest release
         run: |
@@ -78,18 +268,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "OrcaSlicer ${{ env.VERSION }} + Snapmaker U1 (8 printers)"
+          name: "OrcaSlicer ${{ needs.build-linux.outputs.version }} + Snapmaker U1 (8 printers)"
           body: |
             ## Quick Start
 
-            ### Option 1 — One-liner (recommended)
+            **Linux / macOS**
             ```bash
             curl -sL https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.sh | bash
             ```
 
-            ### Option 2 — Manual download
-            1. Download **StemlabSlicer.AppImage** → run directly
-            2. Download **snapmaker-u1-configs.tar.gz** → extract → `bash install.sh`
+            **Windows (PowerShell)**
+            ```powershell
+            irm https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.ps1 | iex
+            ```
 
             ---
             | Printer | IP |
@@ -103,11 +294,14 @@ jobs:
             | U1-7 | 10.15.5.165 |
             | U1-8 | 10.15.5.70 |
 
-            > VPN connection required to reach printers (10.15.5.0/24)
-
-            **AppImage size:** ${{ env.SIZE }}
+            > VPN connection required (`10.15.5.0/24`)
+            > macOS: right-click → Open on first launch (not notarized by Apple)
           files: |
-            StemlabSlicer.AppImage
-            snapmaker-u1-configs.tar.gz
+            dist/linux-appimage/StemlabSlicer_Linux.AppImage
+            dist/windows-zip/StemlabSlicer_Windows.zip
+            dist/macos-intel-dmg/StemlabSlicer_Mac.dmg
+            dist/macos-arm-dmg/StemlabSlicer_Mac_arm64.dmg
+            dist/snapmaker-u1-configs.tar.gz
             install.sh
+            install.ps1
           make_latest: true

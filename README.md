@@ -23,12 +23,15 @@
 
 ## Quick Start
 
+**Linux / macOS**
 ```bash
 curl -sL https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.sh | bash
 ```
 
-That's it. The script downloads **StemlabSlicer** and creates a desktop shortcut.  
-All 8 printers are already inside the app — just connect VPN and print.
+**Windows (PowerShell)**
+```powershell
+irm https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.ps1 | iex
+```
 
 ---
 
@@ -40,26 +43,25 @@ All 8 printers are already inside the app — just connect VPN and print.
 
 </div>
 
-**Linux (AppImage)**
-
-```bash
-# Download
-wget https://github.com/12MICKY/CUDSteamlabSlicer/releases/latest/download/StemlabSlicer.AppImage
-
-# Make executable and run
-chmod +x StemlabSlicer.AppImage
-./StemlabSlicer.AppImage
-```
+| Platform | File |
+|:---:|:---|
+| 🐧 Linux | `StemlabSlicer_Linux.AppImage` |
+| 🍎 macOS Intel | `StemlabSlicer_Mac.dmg` |
+| 🍎 macOS Apple Silicon | `StemlabSlicer_Mac_arm64.dmg` |
+| 🪟 Windows | `StemlabSlicer_Windows.zip` (portable) |
 
 > [!IMPORTANT]
 > VPN must be connected to reach the printer network (`10.15.5.0/24`)
+
+> [!NOTE]
+> **macOS:** Right-click → Open on first launch (app is not notarized by Apple)
+> **Windows:** Extract the ZIP and run `StemlabSlicer.exe` — no installation required
 
 ---
 
 ## Printers
 
-All 8 printers are embedded as **read-only system presets** inside the app.  
-Users can select and print — but cannot change IP addresses or API keys.
+All 8 printers are embedded as **read-only system presets** inside the app.
 
 | # | Printer | IP Address | Web Interface |
 |:---:|:---|:---:|:---:|
@@ -93,28 +95,22 @@ done
 
 ## How It Works
 
-StemlabSlicer is built automatically by a [GitHub Actions workflow](.github/workflows/release.yml) on every push:
+StemlabSlicer is built automatically by a [GitHub Actions workflow](.github/workflows/release.yml) for all platforms on every push:
 
 ```
-OrcaSlicer AppImage (latest)
+OrcaSlicer (latest release)
         │
-        ▼
-  Extract squashfs
-        │
-        ├─ Replace icon → Stemlabs logo
-        ├─ Rename app  → StemlabSlicer
-        └─ Inject printer presets → Snapmaker U1-1 to U1-8
-              (from: "system" — read-only, not editable by users)
-        │
-        ▼
-  Repack as StemlabSlicer.AppImage
+        ├─── Linux   → Extract AppImage → inject presets → repack AppImage
+        ├─── Windows → Silent install → inject presets → zip portable
+        └─── macOS   → Mount DMG → inject presets → repackage DMG
+                      (Intel x86_64 + Apple Silicon arm64)
         │
         ▼
   Publish to GitHub Releases
 ```
 
-**Printer configs are baked directly into the AppImage** at build time using [`embed_printers.py`](embed_printers.py).  
-Printer data is defined once in [`printers.json`](printers.json) and shared across all scripts.
+**Printer configs are baked into every binary** at build time via [`embed_printers.py`](embed_printers.py).  
+All printer data is defined once in [`printers.json`](printers.json).
 
 ---
 
@@ -122,12 +118,13 @@ Printer data is defined once in [`printers.json`](printers.json) and shared acro
 
 | File | Purpose |
 |---|---|
-| [`install.sh`](install.sh) | One-liner installer: downloads AppImage + desktop shortcut |
-| [`embed_printers.py`](embed_printers.py) | Injects printer presets into squashfs at build time (reads `printers.json`) |
+| [`install.sh`](install.sh) | One-liner installer for Linux and macOS |
+| [`install.ps1`](install.ps1) | One-liner installer for Windows (PowerShell) |
+| [`embed_printers.py`](embed_printers.py) | Injects printer presets at build time (reads `printers.json`) |
 | [`printer-setup.sh`](printer-setup.sh) | Manual preset setup for existing OrcaSlicer installations |
 | [`printers.json`](printers.json) | Single source of truth — printer IPs and API keys |
 | [`printers.csv`](printers.csv) | Printer list in CSV format |
-| [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI/CD: build and publish AppImage |
+| [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI/CD: cross-platform build and publish |
 
 ---
 

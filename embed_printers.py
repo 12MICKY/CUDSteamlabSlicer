@@ -1,7 +1,9 @@
 import json, os, sys
 
-MACHINE_DIR = os.path.join(sys.argv[1], "resources", "profiles", "Snapmaker", "machine")
-VENDOR_PATH = os.path.join(sys.argv[1], "resources", "profiles", "Snapmaker.json")
+ROOT = sys.argv[1]
+PROFILES_SUBDIR = sys.argv[2] if len(sys.argv) > 2 else os.path.join("resources", "profiles")
+MACHINE_DIR = os.path.join(ROOT, PROFILES_SUBDIR, "Snapmaker", "machine")
+VENDOR_PATH = os.path.join(ROOT, PROFILES_SUBDIR, "Snapmaker.json")
 
 with open("printers.json") as f:
     printers = json.load(f)
