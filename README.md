@@ -1,42 +1,107 @@
-# Snapmaker U1 Printers — OrcaSlicer Setup
+# Snapmaker U1 — OrcaSlicer Setup
 
-Pre-configured OrcaSlicer setup for all 8 Snapmaker U1 printers.
+One-command setup to install OrcaSlicer with all 8 Snapmaker U1 printers pre-configured and ready to use.
 
-## Printers
+---
 
-| Name | IP | API Key |
-|---|---|---|
-| Snapmaker U1-1 | 10.15.5.66 | d24293eb7f22427d9882d633d59f81e4 |
-| Snapmaker U1-2 | 10.15.5.160 | f9e7ee5e738748c48bc04858f0fb6eea |
-| Snapmaker U1-3 | 10.15.5.152 | 25f37875b8914dcc9481b1ac5de50997 |
-| Snapmaker U1-4 | 10.15.5.69 | 0fce7c7d4bd64b81872a959e4ac39d97 |
-| Snapmaker U1-5 | 10.15.5.164 | 6d2ef4dcd78e46d68c5d0f998bcf23ad |
-| Snapmaker U1-6 | 10.15.5.174 | f4861b66404e4b5680ba5a5d174504e0 |
-| Snapmaker U1-7 | 10.15.5.165 | d972cc538b6547e2a239ac78e150d419 |
-| Snapmaker U1-8 | 10.15.5.70 | 82dc1d73b4de48c4bd184d28371df314 |
+## Quick Start
 
-> VPN connection required to reach printers (10.15.5.0/24)
-
-## Installation
-
-### Option 1 — One-liner (recommended)
 ```bash
 curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
 ```
 
-### Option 2 — Download manually
-1. Download `OrcaSlicer.AppImage` from [Releases](https://github.com/12MICKY/snapmaker-printers/releases/latest)
-2. Make it executable and run:
+This will:
+- Download OrcaSlicer (latest build from this repo)
+- Create a desktop shortcut
+- Configure all 8 printers with IP addresses and API keys
+
+Then launch OrcaSlicer — all printers appear immediately, no manual setup needed.
+
+> **Requirement:** VPN must be connected to reach the printer network (`10.15.5.0/24`)
+
+---
+
+## Printers
+
+| # | Name | IP Address | Fluidd Web UI |
+|---|---|---|---|
+| 1 | Snapmaker U1-1 | `10.15.5.66` | http://10.15.5.66 |
+| 2 | Snapmaker U1-2 | `10.15.5.160` | http://10.15.5.160 |
+| 3 | Snapmaker U1-3 | `10.15.5.152` | http://10.15.5.152 |
+| 4 | Snapmaker U1-4 | `10.15.5.69` | http://10.15.5.69 |
+| 5 | Snapmaker U1-5 | `10.15.5.164` | http://10.15.5.164 |
+| 6 | Snapmaker U1-6 | `10.15.5.174` | http://10.15.5.174 |
+| 7 | Snapmaker U1-7 | `10.15.5.165` | http://10.15.5.165 |
+| 8 | Snapmaker U1-8 | `10.15.5.70` | http://10.15.5.70 |
+
+---
+
+## Installation Options
+
+### Option 1 — One-liner (recommended)
+
+```bash
+curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
+```
+
+Downloads OrcaSlicer from this repo's [latest release](https://github.com/12MICKY/snapmaker-printers/releases/latest) and sets up all printer configs automatically.
+
+### Option 2 — Download from Releases
+
+1. Go to [Releases](https://github.com/12MICKY/snapmaker-printers/releases/latest)
+2. Download `OrcaSlicer.AppImage`
+3. Make it executable and run:
+
 ```bash
 chmod +x OrcaSlicer.AppImage
 ./OrcaSlicer.AppImage
 ```
 
+4. Download `snapmaker-u1-configs.tar.gz`, extract it, then run:
+
+```bash
+bash install.sh
+```
+
+### Option 3 — Configs only (OrcaSlicer already installed)
+
+```bash
+bash printer-setup.sh
+```
+
+Restart OrcaSlicer after running — all 8 printers will appear in the printer list.
+
+---
+
+## Connectivity Check
+
+Run this to verify VPN is connected and all printers are reachable:
+
+```bash
+for ip in 10.15.5.66 10.15.5.160 10.15.5.152 10.15.5.69 10.15.5.164 10.15.5.174 10.15.5.165 10.15.5.70; do
+  ping -c1 -W2 $ip &>/dev/null && echo "✓ $ip" || echo "✗ $ip (unreachable)"
+done
+```
+
+---
+
 ## Files
 
 | File | Description |
 |---|---|
-| `install.sh` | Installs OrcaSlicer + all printer configs in one shot |
-| `printer-setup.sh` | Sets up printer configs only (OrcaSlicer already installed) |
-| `printers.json` | All printer data (JSON) |
-| `printers.csv` | All printer data (CSV) |
+| `install.sh` | Full setup: downloads OrcaSlicer + installs all printer configs |
+| `printer-setup.sh` | Installs printer configs only (skips OrcaSlicer download) |
+| `printers.json` | Machine list with IPs and API keys (JSON) |
+| `printers.csv` | Machine list with IPs and API keys (CSV) |
+
+---
+
+## How Releases Are Built
+
+A [GitHub Actions workflow](.github/workflows/release.yml) runs on a self-hosted runner and automatically:
+
+1. Fetches the latest OrcaSlicer AppImage from the official release
+2. Bundles printer configs into `snapmaker-u1-configs.tar.gz`
+3. Publishes everything as a GitHub Release
+
+Trigger a new release manually from the [Actions tab](https://github.com/12MICKY/snapmaker-printers/actions/workflows/release.yml).
