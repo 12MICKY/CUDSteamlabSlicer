@@ -2,29 +2,16 @@ $ErrorActionPreference = "Stop"
 
 $repo    = "12MICKY/CUDSteamlabSlicer"
 $baseUrl = "https://github.com/$repo/releases/latest/download"
-$zipPath = "$env:TEMP\StemlabSlicer_Windows.zip"
-$installDir = "$env:LOCALAPPDATA\StemlabSlicer"
+$installer = "$env:TEMP\StemlabSlicer_Windows_Setup.exe"
 
 Write-Host "=== StemlabSlicer Setup (Windows) ===" -ForegroundColor Cyan
 
-Write-Host "[1/3] Downloading StemlabSlicer..."
-Invoke-WebRequest -Uri "$baseUrl/StemlabSlicer_Windows.zip" -OutFile $zipPath -UseBasicParsing
+Write-Host "[1/2] Downloading installer..."
+Invoke-WebRequest -Uri "$baseUrl/StemlabSlicer_Windows_Setup.exe" -OutFile $installer -UseBasicParsing
 
-Write-Host "[2/3] Extracting to $installDir..."
-if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force }
-Expand-Archive -Path $zipPath -DestinationPath $installDir
-Remove-Item $zipPath
-
-Write-Host "[3/3] Creating desktop shortcut..."
-$exe = Get-ChildItem $installDir -Filter "*.exe" -Recurse |
-  Where-Object { $_.Name -match "StemlabSlicer|OrcaSlicer" } |
-  Select-Object -First 1 -ExpandProperty FullName
-
-$shell    = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut("$env:USERPROFILE\Desktop\StemlabSlicer.lnk")
-$shortcut.TargetPath  = $exe
-$shortcut.Description = "StemlabSlicer - OrcaSlicer Stemlabs Edition"
-$shortcut.Save()
+Write-Host "[2/2] Running installer..."
+Start-Process -FilePath $installer -Wait
+Remove-Item $installer -Force
 
 Write-Host ""
 Write-Host "Done! Printer configs (U1-1 to U1-8) are built into StemlabSlicer." -ForegroundColor Green

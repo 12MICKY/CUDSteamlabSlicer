@@ -7,6 +7,7 @@ on:
     paths:
       - 'install.sh'
       - 'install.ps1'
+      - 'installer.iss'
       - 'printer-setup.sh'
       - 'printers.json'
       - 'embed_printers.py'
@@ -67,7 +68,7 @@ jobs:
           retention-days: 1
 
   build-windows:
-    name: Windows (Portable ZIP)
+    name: Windows (Installer + Portable)
     runs-on: windows-latest
     permissions:
       contents: read
@@ -76,6 +77,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download OrcaSlicer Windows installer
+        id: download
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
@@ -83,10 +85,12 @@ jobs:
           $url = (gh api repos/OrcaSlicer/OrcaSlicer/releases/latest `
             --jq '.assets[] | select(.name | test("Windows") and test("\\.exe$")) | .browser_download_url') `
             -split "`n" | Where-Object { $_ } | Select-Object -First 1
+          $version = (gh api repos/OrcaSlicer/OrcaSlicer/releases/latest --jq '.tag_name')
           Write-Host "Downloading: $url"
           Invoke-WebRequest -Uri $url -OutFile OrcaSlicer_setup.exe -UseBasicParsing
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Install, patch, and zip
+      - name: Install, patch
         shell: pwsh
         run: |
           $installDir = "C:\StemlabSlicer"
@@ -104,7 +108,31 @@ jobs:
             Rename-Item "$installDir\OrcaSlicer.exe" "StemlabSlicer.exe"
           }
 
-          Compress-Archive -Path "$installDir\*" -DestinationPath StemlabSlicer_Windows.zip
+      - name: Convert icon to ICO
+        shell: pwsh
+        run: magick convert icon.png -resize 256x256 icon.ico
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+
+      - name: Build installer .exe
+        shell: pwsh
+        run: |
+          $version = "${{ steps.download.outputs.version }}"
+          iscc /DMyAppVersion="$version" /DMySourceDir="C:\StemlabSlicer" installer.iss
+
+      - name: Build portable .zip
+        shell: pwsh
+        run: Compress-Archive -Path "C:\StemlabSlicer\*" -DestinationPath StemlabSlicer_Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: StemlabSlicer_Windows_Setup.exe
+          retention-days: 1
 
       - uses: actions/upload-artifact@v4
         with:
@@ -126,7 +154,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
-            --jq '.assets[] | select(.name | test("Mac_V") and (test("arm64") | not) and test("\\.dmg$")) | .browser_download_url' | head -1)
+            --jq '.assets[] | select(.name | test("Mac_V") and (test("arm64") | not) and test("\.dmg$")) | .browser_download_url' | head -1)
           echo "Downloading: $LATEST"
           curl -L --progress-bar -o OrcaSlicer.dmg "$LATEST"
 
@@ -189,7 +217,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
-            --jq '.assets[] | select(.name | test("Mac_arm64_V") and test("\\.dmg$")) | .browser_download_url' | head -1)
+            --jq '.assets[] | select(.name | test("Mac_arm64_V") and test("\.dmg$")) | .browser_download_url' | head -1)
           echo "Downloading: $LATEST"
           curl -L --progress-bar -o OrcaSlicer_arm64.dmg "$LATEST"
 
@@ -298,6 +326,7 @@ jobs:
             > macOS: right-click → Open on first launch (not notarized by Apple)
           files: |
             dist/linux-appimage/StemlabSlicer_Linux.AppImage
+            dist/windows-installer/StemlabSlicer_Windows_Setup.exe
             dist/windows-zip/StemlabSlicer_Windows.zip
             dist/macos-intel-dmg/StemlabSlicer_Mac.dmg
             dist/macos-arm-dmg/StemlabSlicer_Mac_arm64.dmg

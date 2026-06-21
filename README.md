@@ -48,6 +48,7 @@ irm https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.ps1
 | 🐧 Linux | `StemlabSlicer_Linux.AppImage` |
 | 🍎 macOS Intel | `StemlabSlicer_Mac.dmg` |
 | 🍎 macOS Apple Silicon | `StemlabSlicer_Mac_arm64.dmg` |
+| 🪟 Windows | `StemlabSlicer_Windows_Setup.exe` (installer) |
 | 🪟 Windows | `StemlabSlicer_Windows.zip` (portable) |
 
 > [!IMPORTANT]
@@ -55,7 +56,6 @@ irm https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.ps1
 
 > [!NOTE]
 > **macOS:** Right-click → Open on first launch (app is not notarized by Apple)
-> **Windows:** Extract the ZIP and run `StemlabSlicer.exe` — no installation required
 
 ---
 
@@ -101,7 +101,7 @@ StemlabSlicer is built automatically by a [GitHub Actions workflow](.github/work
 OrcaSlicer (latest release)
         │
         ├─── Linux   → Extract AppImage → inject presets → repack AppImage
-        ├─── Windows → Silent install → inject presets → zip portable
+        ├─── Windows → Silent install → inject presets → Inno Setup .exe + portable .zip
         └─── macOS   → Mount DMG → inject presets → repackage DMG
                       (Intel x86_64 + Apple Silicon arm64)
         │
@@ -120,6 +120,7 @@ All printer data is defined once in [`printers.json`](printers.json).
 |---|---|
 | [`install.sh`](install.sh) | One-liner installer for Linux and macOS |
 | [`install.ps1`](install.ps1) | One-liner installer for Windows (PowerShell) |
+| [`installer.iss`](installer.iss) | Inno Setup script for Windows .exe installer |
 | [`embed_printers.py`](embed_printers.py) | Injects printer presets at build time (reads `printers.json`) |
 | [`printer-setup.sh`](printer-setup.sh) | Manual preset setup for existing OrcaSlicer installations |
 | [`printers.json`](printers.json) | Single source of truth — printer IPs and API keys |
