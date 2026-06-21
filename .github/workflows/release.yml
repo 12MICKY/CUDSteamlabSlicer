@@ -21,8 +21,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download OrcaSlicer AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | python3 -c "import sys,json; r=json.load(sys.stdin); [print(a['browser_download_url']) for a in r['assets'] if 'AppImage_Ubuntu2404_V' in a['name'] and 'aarch64' not in a['name']]" | head -1)
+          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest --jq '.assets[] | select(.name | test("AppImage_Ubuntu2404_V") and (test("aarch64") | not)) | .browser_download_url' | head -1)
           echo "Downloading: $LATEST"
           wget -q --show-progress -O StemlabSlicer.AppImage "$LATEST"
           chmod +x StemlabSlicer.AppImage
