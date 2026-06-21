@@ -8,7 +8,7 @@ RAW_URL="https://raw.githubusercontent.com/$REPO/main"
 detect_platform() {
   case "$(uname -s)" in
     Linux*)  echo "linux" ;;
-    Darwin*) [[ "$(uname -m)" == "arm64" ]] && echo "macos-arm" || echo "macos-intel" ;;
+    Darwin*) echo "macos" ;;
     *)       echo "unsupported" ;;
   esac
 }
@@ -51,19 +51,17 @@ EOF
     echo "Done! Connect to VPN then launch: $APPIMAGE"
     ;;
 
-  macos-intel|macos-arm)
+  macos)
     echo "=== StemlabSlicer Setup (macOS) ==="
-    [[ "$PLATFORM" == "macos-arm" ]] && DMG="StemlabSlicer_Mac_arm64.dmg" || DMG="StemlabSlicer_Mac.dmg"
-
-    echo "[1/2] Downloading $DMG..."
-    curl -L --progress-bar -o "/tmp/$DMG" "$BASE_URL/$DMG"
+    echo "[1/2] Downloading StemlabSlicer_Mac.dmg..."
+    curl -L --progress-bar -o "/tmp/StemlabSlicer_Mac.dmg" "$BASE_URL/StemlabSlicer_Mac.dmg"
 
     echo "[2/2] Installing to /Applications..."
-    hdiutil attach "/tmp/$DMG" -quiet -nobrowse -readonly -mountpoint /tmp/stemlabslicer_mount
+    hdiutil attach "/tmp/StemlabSlicer_Mac.dmg" -quiet -nobrowse -readonly -mountpoint /tmp/stemlabslicer_mount
     rm -rf /Applications/StemlabSlicer.app
     cp -r "/tmp/stemlabslicer_mount/StemlabSlicer.app" "/Applications/"
     hdiutil detach /tmp/stemlabslicer_mount -quiet
-    rm "/tmp/$DMG"
+    rm "/tmp/StemlabSlicer_Mac.dmg"
 
     echo ""
     echo "Done! Connect to VPN then open StemlabSlicer from Launchpad."

@@ -76,36 +76,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download OrcaSlicer Windows installer
-        id: download
+      - name: Download OrcaSlicer Windows portable zip
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $url = (gh api repos/OrcaSlicer/OrcaSlicer/releases/latest `
-            --jq '.assets[] | select(.name | test("Windows") and test("\\.exe$")) | .browser_download_url') `
+            --jq '.assets[] | select(.name | test("Windows.*portable.*\.zip")) | .browser_download_url') `
             -split "`n" | Where-Object { $_ } | Select-Object -First 1
           $version = (gh api repos/OrcaSlicer/OrcaSlicer/releases/latest --jq '.tag_name')
           Write-Host "Downloading: $url"
-          Invoke-WebRequest -Uri $url -OutFile OrcaSlicer_setup.exe -UseBasicParsing
+          Invoke-WebRequest -Uri $url -OutFile OrcaSlicer_portable.zip -UseBasicParsing
           echo "version=$version" >> $env:GITHUB_OUTPUT
+        id: download
 
-      - name: Install, patch
+      - name: Extract, patch, and rename
         shell: pwsh
         run: |
-          $installDir = "C:\StemlabSlicer"
-          Start-Process -FilePath ".\OrcaSlicer_setup.exe" -ArgumentList "/S /D=$installDir" -Wait
+          $buildDir = "C:\StemlabSlicer"
+          Expand-Archive -Path OrcaSlicer_portable.zip -DestinationPath $buildDir
 
-          if (-not (Test-Path "$installDir\resources\profiles\Snapmaker.json")) {
-            Write-Error "Install failed: resources not found at $installDir"
-            Get-ChildItem $installDir -Recurse -Name | Select-Object -First 30
+          # OrcaSlicer portable may extract into a subdirectory
+          $inner = Get-ChildItem $buildDir -Directory | Select-Object -First 1
+          if ($inner) {
+            Get-ChildItem $inner.FullName | Move-Item -Destination $buildDir
+            Remove-Item $inner.FullName
+          }
+
+          if (-not (Test-Path "$buildDir\resources\profiles\Snapmaker.json")) {
+            Write-Error "Unexpected structure — Snapmaker.json not found"
+            Get-ChildItem $buildDir -Recurse -Name | Select-Object -First 30
             exit 1
           }
 
-          python embed_printers.py $installDir
+          python embed_printers.py $buildDir
 
-          if (Test-Path "$installDir\OrcaSlicer.exe") {
-            Rename-Item "$installDir\OrcaSlicer.exe" "StemlabSlicer.exe"
+          if (Test-Path "$buildDir\OrcaSlicer.exe") {
+            Rename-Item "$buildDir\OrcaSlicer.exe" "StemlabSlicer.exe"
           }
 
       - name: Convert icon to ICO
@@ -140,21 +147,21 @@ jobs:
           path: StemlabSlicer_Windows.zip
           retention-days: 1
 
-  build-macos-intel:
-    name: macOS Intel (DMG)
-    runs-on: macos-13
+  build-macos:
+    name: macOS Universal (DMG)
+    runs-on: macos-latest
     permissions:
       contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download OrcaSlicer macOS Intel DMG
+      - name: Download OrcaSlicer macOS Universal DMG
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
-            --jq '.assets[] | select(.name | test("Mac_V") and (test("arm64") | not) and test("\.dmg$")) | .browser_download_url' | head -1)
+            --jq '.assets[] | select(.name | test("Mac_universal_V") and test("\.dmg$")) | .browser_download_url' | head -1)
           echo "Downloading: $LATEST"
           curl -L --progress-bar -o OrcaSlicer.dmg "$LATEST"
 
@@ -199,76 +206,13 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-intel-dmg
+          name: macos-dmg
           path: StemlabSlicer_Mac.dmg
-          retention-days: 1
-
-  build-macos-arm:
-    name: macOS Apple Silicon (DMG)
-    runs-on: macos-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download OrcaSlicer macOS ARM DMG
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          LATEST=$(gh api repos/OrcaSlicer/OrcaSlicer/releases/latest \
-            --jq '.assets[] | select(.name | test("Mac_arm64_V") and test("\.dmg$")) | .browser_download_url' | head -1)
-          echo "Downloading: $LATEST"
-          curl -L --progress-bar -o OrcaSlicer_arm64.dmg "$LATEST"
-
-      - name: Patch and repackage
-        run: |
-          hdiutil attach OrcaSlicer_arm64.dmg -quiet -nobrowse -readonly -mountpoint /tmp/orca_mount
-          cp -r "/tmp/orca_mount/OrcaSlicer.app" ./StemlabSlicer.app
-          hdiutil detach /tmp/orca_mount -quiet
-
-          /usr/libexec/PlistBuddy -c "Set :CFBundleName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName StemlabSlicer" StemlabSlicer.app/Contents/Info.plist
-
-          mkdir -p AppIcon.iconset
-          for size in 16 32 64 128 256 512 1024; do
-            sips -z $size $size icon.png --out AppIcon.iconset/icon_${size}.png 2>/dev/null
-          done
-          cp AppIcon.iconset/icon_16.png   AppIcon.iconset/icon_16x16.png
-          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_16x16@2x.png
-          cp AppIcon.iconset/icon_32.png   AppIcon.iconset/icon_32x32.png
-          cp AppIcon.iconset/icon_64.png   AppIcon.iconset/icon_32x32@2x.png
-          cp AppIcon.iconset/icon_128.png  AppIcon.iconset/icon_128x128.png
-          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_128x128@2x.png
-          cp AppIcon.iconset/icon_256.png  AppIcon.iconset/icon_256x256.png
-          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_256x256@2x.png
-          cp AppIcon.iconset/icon_512.png  AppIcon.iconset/icon_512x512.png
-          cp AppIcon.iconset/icon_1024.png AppIcon.iconset/icon_512x512@2x.png
-          iconutil -c icns AppIcon.iconset -o AppIcon.icns
-          find StemlabSlicer.app/Contents/Resources -name "*.icns" | while read f; do
-            cp AppIcon.icns "$f"
-          done
-
-          python3 embed_printers.py StemlabSlicer.app/Contents/Resources profiles
-
-          codesign --remove-signature StemlabSlicer.app || true
-          codesign --force --deep --sign - StemlabSlicer.app
-
-          hdiutil create -srcfolder StemlabSlicer.app \
-            -volname "StemlabSlicer" -fs HFS+ -format UDZO \
-            -o StemlabSlicer_Mac_arm64.dmg
-
-          rm -rf StemlabSlicer.app AppIcon.iconset AppIcon.icns OrcaSlicer_arm64.dmg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-arm-dmg
-          path: StemlabSlicer_Mac_arm64.dmg
           retention-days: 1
 
   release:
     name: Publish Release
-    needs: [build-linux, build-windows, build-macos-intel, build-macos-arm]
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -328,8 +272,7 @@ jobs:
             dist/linux-appimage/StemlabSlicer_Linux.AppImage
             dist/windows-installer/StemlabSlicer_Windows_Setup.exe
             dist/windows-zip/StemlabSlicer_Windows.zip
-            dist/macos-intel-dmg/StemlabSlicer_Mac.dmg
-            dist/macos-arm-dmg/StemlabSlicer_Mac_arm64.dmg
+            dist/macos-dmg/StemlabSlicer_Mac.dmg
             dist/snapmaker-u1-configs.tar.gz
             install.sh
             install.ps1

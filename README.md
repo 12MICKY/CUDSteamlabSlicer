@@ -46,8 +46,7 @@ irm https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.ps1
 | Platform | File |
 |:---:|:---|
 | 🐧 Linux | `StemlabSlicer_Linux.AppImage` |
-| 🍎 macOS Intel | `StemlabSlicer_Mac.dmg` |
-| 🍎 macOS Apple Silicon | `StemlabSlicer_Mac_arm64.dmg` |
+| 🍎 macOS (Intel + Apple Silicon) | `StemlabSlicer_Mac.dmg` |
 | 🪟 Windows | `StemlabSlicer_Windows_Setup.exe` (installer) |
 | 🪟 Windows | `StemlabSlicer_Windows.zip` (portable) |
 
@@ -101,9 +100,8 @@ StemlabSlicer is built automatically by a [GitHub Actions workflow](.github/work
 OrcaSlicer (latest release)
         │
         ├─── Linux   → Extract AppImage → inject presets → repack AppImage
-        ├─── Windows → Silent install → inject presets → Inno Setup .exe + portable .zip
-        └─── macOS   → Mount DMG → inject presets → repackage DMG
-                      (Intel x86_64 + Apple Silicon arm64)
+        ├─── Windows → Extract portable zip → inject presets → Inno Setup .exe + portable .zip
+        └─── macOS   → Mount DMG → inject presets → repackage DMG (universal: Intel + ARM)
         │
         ▼
   Publish to GitHub Releases
