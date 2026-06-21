@@ -47,7 +47,7 @@ jobs:
 
           wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
-          ARCH=x86_64 ./appimagetool squashfs-root StemlabSlicer.AppImage 2>&1 | tail -3
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root StemlabSlicer.AppImage
           rm -rf squashfs-root appimagetool
 
       - name: Bundle printer configs
