@@ -30,6 +30,13 @@ jobs:
         id: download
         run: |
           RELEASE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest)
+
+          if ! echo "$RELEASE" | grep -q '"assets"'; then
+            echo "Error: Invalid API response - missing assets"
+            echo "$RELEASE" | head -20
+            exit 1
+          fi
+
           LATEST=$(echo "$RELEASE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if 'AppImage_Ubuntu2404_V' in a['name'] and 'aarch64' not in a['name']))")
           VERSION=$(echo "$RELEASE" | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")
           echo "Downloading: $LATEST"
@@ -153,7 +160,15 @@ jobs:
 
       - name: Download OrcaSlicer macOS Universal DMG
         run: |
-          LATEST=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if 'Mac_universal_V' in a['name'] and a['name'].endswith('.dmg')))")
+          RELEASE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest)
+
+          if ! echo "$RELEASE" | grep -q '"assets"'; then
+            echo "Error: Invalid API response - missing assets"
+            echo "$RELEASE" | head -20
+            exit 1
+          fi
+
+          LATEST=$(echo "$RELEASE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if 'Mac_universal_V' in a['name'] and a['name'].endswith('.dmg')))")
           echo "Downloading: $LATEST"
           curl -L --progress-bar -o OrcaSlicer.dmg "$LATEST"
 
