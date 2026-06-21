@@ -1,0 +1,54 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OrcaSlicer
+        run: |
+          wget -q --show-progress \
+            -O OrcaSlicer.AppImage \
+            "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.4.0/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage"
+          chmod +x OrcaSlicer.AppImage
+
+      - name: Bundle printer configs
+        run: |
+          mkdir -p bundle/printers
+          cp printers.json printers.csv printer-setup.sh bundle/
+          cp -r printer-configs/ bundle/printers/ 2>/dev/null || true
+          cp install.sh bundle/
+          tar -czf snapmaker-u1-configs.tar.gz -C bundle .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "OrcaSlicer + Snapmaker U1 Setup"
+          body: |
+            ## วิธีติดตั้ง
+
+            ### แบบที่ 1 — ใช้ script (แนะนำ)
+            ```bash
+            curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
+            ```
+
+            ### แบบที่ 2 — โหลดเอง
+            1. โหลด `OrcaSlicer.AppImage` → รันได้เลย
+            2. โหลด `snapmaker-u1-configs.tar.gz` → แตกไฟล์ → รัน `install.sh`
+
+            > ต้องเชื่อมต่อ VPN ก่อนถึงจะเข้าถึง printer ได้ (10.15.5.0/24)
+          files: |
+            OrcaSlicer.AppImage
+            snapmaker-u1-configs.tar.gz
+            install.sh
+          make_latest: true

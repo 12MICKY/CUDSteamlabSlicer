@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-APPIMAGE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.4.0/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage"
+APPIMAGE_URL="https://github.com/12MICKY/snapmaker-printers/releases/latest/download/OrcaSlicer.AppImage"
 INSTALL_DIR="$HOME/Applications"
 APPIMAGE="$INSTALL_DIR/OrcaSlicer.AppImage"
 CONFIG_DIR="$HOME/.config/OrcaSlicer/user/default/machine"
