@@ -43,45 +43,49 @@ jobs:
           sed -i 's/Name=OrcaSlicer/Name=StemlabSlicer/g' squashfs-root/usr/share/applications/*.desktop 2>/dev/null || true
 
           # Embed Snapmaker U1 presets as read-only system profiles
-          MACHINE_DIR="squashfs-root/resources/profiles/Snapmaker/machine"
-          embed_printer() {
-            local num="$1" ip="$2" apikey="$3"
-            cat > "$MACHINE_DIR/Snapmaker U1-${num}.json" <<ENDJSON
-{
-    "type": "machine",
-    "setting_id": "SM_U1_${num}",
-    "name": "Snapmaker U1-${num}",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Snapmaker U1 (0.4 nozzle)",
-    "print_host": "${ip}",
-    "printhost_apikey": "${apikey}",
-    "printer_settings_id": "Snapmaker U1-${num}"
-}
-ENDJSON
-          }
-          embed_printer "1" "10.15.5.66"  "d24293eb7f22427d9882d633d59f81e4"
-          embed_printer "2" "10.15.5.160" "f9e7ee5e738748c48bc04858f0fb6eea"
-          embed_printer "3" "10.15.5.152" "25f37875b8914dcc9481b1ac5de50997"
-          embed_printer "4" "10.15.5.69"  "0fce7c7d4bd64b81872a959e4ac39d97"
-          embed_printer "5" "10.15.5.164" "6d2ef4dcd78e46d68c5d0f998bcf23ad"
-          embed_printer "6" "10.15.5.174" "f4861b66404e4b5680ba5a5d174504e0"
-          embed_printer "7" "10.15.5.165" "d972cc538b6547e2a239ac78e150d419"
-          embed_printer "8" "10.15.5.70"  "82dc1d73b4de48c4bd184d28371df314"
+          python3 <<'PYEOF'
+import json, os
 
-          # Register presets in Snapmaker.json machine_list
-          python3 - "squashfs-root/resources/profiles/Snapmaker.json" <<'PYEOF'
-import json, sys
-path = sys.argv[1]
-with open(path) as f:
+MACHINE_DIR = "squashfs-root/resources/profiles/Snapmaker/machine"
+printers = [
+    ("1", "10.15.5.66",  "d24293eb7f22427d9882d633d59f81e4"),
+    ("2", "10.15.5.160", "f9e7ee5e738748c48bc04858f0fb6eea"),
+    ("3", "10.15.5.152", "25f37875b8914dcc9481b1ac5de50997"),
+    ("4", "10.15.5.69",  "0fce7c7d4bd64b81872a959e4ac39d97"),
+    ("5", "10.15.5.164", "6d2ef4dcd78e46d68c5d0f998bcf23ad"),
+    ("6", "10.15.5.174", "f4861b66404e4b5680ba5a5d174504e0"),
+    ("7", "10.15.5.165", "d972cc538b6547e2a239ac78e150d419"),
+    ("8", "10.15.5.70",  "82dc1d73b4de48c4bd184d28371df314"),
+]
+
+for num, ip, apikey in printers:
+    preset = {
+        "type": "machine",
+        "setting_id": f"SM_U1_{num}",
+        "name": f"Snapmaker U1-{num}",
+        "from": "system",
+        "instantiation": "true",
+        "inherits": "Snapmaker U1 (0.4 nozzle)",
+        "print_host": ip,
+        "printhost_apikey": apikey,
+        "printer_settings_id": f"Snapmaker U1-{num}",
+    }
+    path = os.path.join(MACHINE_DIR, f"Snapmaker U1-{num}.json")
+    with open(path, "w") as f:
+        json.dump(preset, f, indent=4)
+    print(f"  embedded: Snapmaker U1-{num} -> {ip}")
+
+vendor_path = "squashfs-root/resources/profiles/Snapmaker.json"
+with open(vendor_path) as f:
     d = json.load(f)
 existing = {e["name"] for e in d["machine_list"]}
-for i in range(1, 9):
-    name = f"Snapmaker U1-{i}"
+for num, _, _ in printers:
+    name = f"Snapmaker U1-{num}"
     if name not in existing:
-        d["machine_list"].append({"name": name, "sub_path": f"machine/Snapmaker U1-{i}.json"})
-with open(path, "w") as f:
+        d["machine_list"].append({"name": name, "sub_path": f"machine/Snapmaker U1-{num}.json"})
+with open(vendor_path, "w") as f:
     json.dump(d, f, indent=4)
+print("  updated Snapmaker.json machine_list")
 PYEOF
 
           wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
