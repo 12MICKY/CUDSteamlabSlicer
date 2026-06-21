@@ -4,6 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'install.sh'
+      - 'printer-setup.sh'
+      - 'printers.json'
+      - 'printers.csv'
 
 jobs:
   release:
@@ -14,39 +19,63 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download OrcaSlicer
+      - name: Download OrcaSlicer AppImage
         run: |
-          wget -q --show-progress \
-            -O OrcaSlicer.AppImage \
-            "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.4.0/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage"
+          LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | python3 -c "import sys,json; r=json.load(sys.stdin); [print(a['browser_download_url']) for a in r['assets'] if 'AppImage_Ubuntu2404_V' in a['name'] and 'aarch64' not in a['name']]" | head -1)
+          echo "Downloading: $LATEST"
+          wget -q --show-progress -O OrcaSlicer.AppImage "$LATEST"
           chmod +x OrcaSlicer.AppImage
+          echo "SIZE=$(du -sh OrcaSlicer.AppImage | cut -f1)" >> $GITHUB_ENV
+          echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
 
       - name: Bundle printer configs
         run: |
-          mkdir -p bundle/printers
-          cp printers.json printers.csv printer-setup.sh bundle/
-          cp -r printer-configs/ bundle/printers/ 2>/dev/null || true
-          cp install.sh bundle/
-          tar -czf snapmaker-u1-configs.tar.gz -C bundle .
+          tar -czf snapmaker-u1-configs.tar.gz \
+            printer-setup.sh \
+            printers.json \
+            printers.csv \
+            install.sh \
+            README.md
+
+      - name: Delete old latest release
+        run: |
+          gh release delete latest --repo ${{ github.repository }} --yes 2>/dev/null || true
+          git push origin :refs/tags/latest 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "OrcaSlicer + Snapmaker U1 Setup"
+          name: "OrcaSlicer ${{ env.VERSION }} + Snapmaker U1 (8 printers)"
           body: |
-            ## วิธีติดตั้ง
+            ## โหลดและใช้งานได้เลย
 
-            ### แบบที่ 1 — ใช้ script (แนะนำ)
+            ### วิธีที่ 1 — one-liner (แนะนำ)
             ```bash
             curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
             ```
 
-            ### แบบที่ 2 — โหลดเอง
-            1. โหลด `OrcaSlicer.AppImage` → รันได้เลย
-            2. โหลด `snapmaker-u1-configs.tar.gz` → แตกไฟล์ → รัน `install.sh`
+            ### วิธีที่ 2 — โหลดมือ
+            1. โหลด **OrcaSlicer.AppImage** → ดับเบิลคลิกรันได้เลย
+            2. โหลด **snapmaker-u1-configs.tar.gz** → แตกไฟล์ → `bash install.sh`
+
+            ---
+            | เครื่อง | IP |
+            |---|---|
+            | U1-1 | 10.15.5.66 |
+            | U1-2 | 10.15.5.160 |
+            | U1-3 | 10.15.5.152 |
+            | U1-4 | 10.15.5.69 |
+            | U1-5 | 10.15.5.164 |
+            | U1-6 | 10.15.5.174 |
+            | U1-7 | 10.15.5.165 |
+            | U1-8 | 10.15.5.70 |
 
             > ต้องเชื่อมต่อ VPN ก่อนถึงจะเข้าถึง printer ได้ (10.15.5.0/24)
+
+            **AppImage size:** ${{ env.SIZE }}
           files: |
             OrcaSlicer.AppImage
             snapmaker-u1-configs.tar.gz
