@@ -51,7 +51,7 @@ jobs:
           python3 embed_printers.py squashfs-root
 
           wget -q -O runtime "https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-x86_64"
-          mksquashfs squashfs-root squashfs.img -noappend -comp zstd -b 1M -root-owned -no-progress
+          mksquashfs squashfs-root squashfs.img -noappend -comp xz -b 1M -root-owned -no-progress
           cat runtime squashfs.img > StemlabSlicer.AppImage
           printf '\x41\x49\x02' | dd of=StemlabSlicer.AppImage bs=1 seek=8 conv=notrunc 2>/dev/null
           chmod +x StemlabSlicer.AppImage
