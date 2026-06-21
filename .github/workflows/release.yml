@@ -9,11 +9,12 @@ on:
       - 'printer-setup.sh'
       - 'printers.json'
       - 'printers.csv'
+      - 'embed_printers.py'
       - '.github/workflows/release.yml'
 
 jobs:
   release:
-    runs-on: node-34-snapmaker
+    runs-on: node-34-custom
     permissions:
       contents: write
 
@@ -32,7 +33,7 @@ jobs:
           echo "VERSION=$(basename $LATEST | grep -oP 'V[\d.]+')" >> $GITHUB_ENV
 
       - name: Install build dependencies
-        run: apt-get install -y squashfs-tools file
+        run: sudo apt-get install -y squashfs-tools file
 
       - name: Patch AppImage (icon + embedded printer presets)
         run: |
@@ -83,7 +84,7 @@ jobs:
 
             ### Option 1 — One-liner (recommended)
             ```bash
-            curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
+            curl -sL https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.sh | bash
             ```
 
             ### Option 2 — Manual download

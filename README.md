@@ -13,9 +13,9 @@
   Connect to VPN, open the app, and start printing — no setup required.
 </p>
 
-[![Build & Release](https://github.com/12MICKY/snapmaker-printers/actions/workflows/release.yml/badge.svg)](https://github.com/12MICKY/snapmaker-printers/actions/workflows/release.yml)
-[![GitHub Release](https://img.shields.io/github/v/release/12MICKY/snapmaker-printers?label=release&color=brightgreen)](https://github.com/12MICKY/snapmaker-printers/releases/latest)
-[![GitHub Downloads](https://img.shields.io/github/downloads/12MICKY/snapmaker-printers/total?color=blue)](https://github.com/12MICKY/snapmaker-printers/releases)
+[![Build & Release](https://github.com/12MICKY/CUDSteamlabSlicer/actions/workflows/release.yml/badge.svg)](https://github.com/12MICKY/CUDSteamlabSlicer/actions/workflows/release.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/12MICKY/CUDSteamlabSlicer?label=release&color=brightgreen)](https://github.com/12MICKY/CUDSteamlabSlicer/releases/latest)
+[![GitHub Downloads](https://img.shields.io/github/downloads/12MICKY/CUDSteamlabSlicer/total?color=blue)](https://github.com/12MICKY/CUDSteamlabSlicer/releases)
 
 </div>
 
@@ -24,7 +24,7 @@
 ## Quick Start
 
 ```bash
-curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/12MICKY/CUDSteamlabSlicer/main/install.sh | bash
 ```
 
 That's it. The script downloads **StemlabSlicer** and creates a desktop shortcut.  
@@ -36,7 +36,7 @@ All 8 printers are already inside the app — just connect VPN and print.
 
 <div align="center">
 
-### 📥 [Download StemlabSlicer (Latest Release)](https://github.com/12MICKY/snapmaker-printers/releases/latest)
+### 📥 [Download StemlabSlicer (Latest Release)](https://github.com/12MICKY/CUDSteamlabSlicer/releases/latest)
 
 </div>
 
@@ -44,7 +44,7 @@ All 8 printers are already inside the app — just connect VPN and print.
 
 ```bash
 # Download
-wget https://github.com/12MICKY/snapmaker-printers/releases/latest/download/StemlabSlicer.AppImage
+wget https://github.com/12MICKY/CUDSteamlabSlicer/releases/latest/download/StemlabSlicer.AppImage
 
 # Make executable and run
 chmod +x StemlabSlicer.AppImage
@@ -113,7 +113,8 @@ OrcaSlicer AppImage (latest)
   Publish to GitHub Releases
 ```
 
-**Printer configs are baked directly into the AppImage** at build time using [`embed_printers.py`](embed_printers.py).
+**Printer configs are baked directly into the AppImage** at build time using [`embed_printers.py`](embed_printers.py).  
+Printer data is defined once in [`printers.json`](printers.json) and shared across all scripts.
 
 ---
 
@@ -122,10 +123,10 @@ OrcaSlicer AppImage (latest)
 | File | Purpose |
 |---|---|
 | [`install.sh`](install.sh) | One-liner installer: downloads AppImage + desktop shortcut |
-| [`embed_printers.py`](embed_printers.py) | Injects printer presets into squashfs at build time |
+| [`embed_printers.py`](embed_printers.py) | Injects printer presets into squashfs at build time (reads `printers.json`) |
 | [`printer-setup.sh`](printer-setup.sh) | Manual preset setup for existing OrcaSlicer installations |
-| [`printers.json`](printers.json) | Printer list with IPs (JSON) |
-| [`printers.csv`](printers.csv) | Printer list with IPs (CSV) |
+| [`printers.json`](printers.json) | Single source of truth — printer IPs and API keys |
+| [`printers.csv`](printers.csv) | Printer list in CSV format |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI/CD: build and publish AppImage |
 
 ---
