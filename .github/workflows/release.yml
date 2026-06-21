@@ -45,11 +45,12 @@ jobs:
           # Embed Snapmaker U1 presets as read-only system profiles
           python3 embed_printers.py squashfs-root
 
-          wget -q -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
-          chmod +x appimagetool
-          export PATH="/usr/bin:/usr/local/bin:$PATH"
-          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root StemlabSlicer.AppImage
-          rm -rf squashfs-root appimagetool
+          wget -q -O runtime "https://github.com/AppImage/AppImageKit/releases/download/continuous/runtime-x86_64"
+          mksquashfs squashfs-root squashfs.img -noappend -comp zstd -b 1M -root-owned -no-progress
+          cat runtime squashfs.img > StemlabSlicer.AppImage
+          printf '\x41\x49\x02' | dd of=StemlabSlicer.AppImage bs=1 seek=8 conv=notrunc 2>/dev/null
+          chmod +x StemlabSlicer.AppImage
+          rm -rf squashfs-root squashfs.img runtime
 
       - name: Bundle printer configs
         run: |
