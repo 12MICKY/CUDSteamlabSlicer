@@ -1,6 +1,5 @@
 #!/bin/bash
-# Snapmaker U1 printer setup for OrcaSlicer
-# Run this on any machine to add all 8 printers
+# Sets up all 8 Snapmaker U1 printer configs in OrcaSlicer
 
 DIR="$HOME/.config/OrcaSlicer/user/default/machine"
 mkdir -p "$DIR"

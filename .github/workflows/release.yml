@@ -50,19 +50,19 @@ jobs:
           tag_name: latest
           name: "OrcaSlicer ${{ env.VERSION }} + Snapmaker U1 (8 printers)"
           body: |
-            ## โหลดและใช้งานได้เลย
+            ## Quick Start
 
-            ### วิธีที่ 1 — one-liner (แนะนำ)
+            ### Option 1 — One-liner (recommended)
             ```bash
             curl -sL https://raw.githubusercontent.com/12MICKY/snapmaker-printers/main/install.sh | bash
             ```
 
-            ### วิธีที่ 2 — โหลดมือ
-            1. โหลด **OrcaSlicer.AppImage** → ดับเบิลคลิกรันได้เลย
-            2. โหลด **snapmaker-u1-configs.tar.gz** → แตกไฟล์ → `bash install.sh`
+            ### Option 2 — Manual download
+            1. Download **OrcaSlicer.AppImage** → run directly
+            2. Download **snapmaker-u1-configs.tar.gz** → extract → `bash install.sh`
 
             ---
-            | เครื่อง | IP |
+            | Printer | IP |
             |---|---|
             | U1-1 | 10.15.5.66 |
             | U1-2 | 10.15.5.160 |
@@ -73,7 +73,7 @@ jobs:
             | U1-7 | 10.15.5.165 |
             | U1-8 | 10.15.5.70 |
 
-            > ต้องเชื่อมต่อ VPN ก่อนถึงจะเข้าถึง printer ได้ (10.15.5.0/24)
+            > VPN connection required to reach printers (10.15.5.0/24)
 
             **AppImage size:** ${{ env.SIZE }}
           files: |

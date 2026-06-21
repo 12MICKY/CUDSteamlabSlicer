@@ -11,11 +11,11 @@ echo "=== OrcaSlicer + Snapmaker U1 Setup ==="
 # 1. Download OrcaSlicer
 mkdir -p "$INSTALL_DIR"
 if [ ! -f "$APPIMAGE" ]; then
-  echo "[1/3] Downloading OrcaSlicer v2.4.0..."
+  echo "[1/3] Downloading OrcaSlicer..."
   wget -q --show-progress -O "$APPIMAGE" "$APPIMAGE_URL"
   chmod +x "$APPIMAGE"
 else
-  echo "[1/3] OrcaSlicer already exists — skip"
+  echo "[1/3] OrcaSlicer already exists — skipping"
 fi
 
 # 2. Create desktop shortcut
