@@ -23,11 +23,11 @@ case "$PLATFORM" in
 
     mkdir -p "$INSTALL_DIR"
     if [ ! -f "$APPIMAGE" ]; then
-      echo "[1/2] Downloading StemlabSlicer..."
+      echo "[1/4] Downloading StemlabSlicer..."
       wget -q --show-progress -O "$APPIMAGE" "$BASE_URL/StemlabSlicer_Linux.AppImage"
       chmod +x "$APPIMAGE"
     else
-      echo "[1/2] Already installed — skipping download"
+      echo "[1/4] Already installed — skipping download"
     fi
 
     ICON="$HOME/.local/share/icons/stemlabslicer.png"
@@ -46,7 +46,23 @@ Terminal=false
 StartupNotify=true
 Categories=Graphics;
 EOF
-    echo "[2/2] Desktop shortcut created"
+    echo "[2/4] Desktop shortcut created"
+
+    echo "[3/4] Installing Snapmaker vendor profiles..."
+    TMPDIR=$(mktemp -d)
+    cd "$TMPDIR"
+    "$APPIMAGE" --appimage-extract 'resources/profiles/Snapmaker*' > /dev/null 2>&1
+    CONF_DIR="$HOME/.config/OrcaSlicer"
+    mkdir -p "$CONF_DIR/system/Snapmaker"
+    cp squashfs-root/resources/profiles/Snapmaker.json "$CONF_DIR/system/"
+    cp -r squashfs-root/resources/profiles/Snapmaker/. "$CONF_DIR/system/Snapmaker/"
+    cd - > /dev/null
+    rm -rf "$TMPDIR"
+    echo "    Snapmaker vendor installed"
+
+    echo "[4/4] Setting up printer configs..."
+    bash <(curl -sL "$RAW_URL/printer-setup.sh")
+
     echo ""
     echo "Done! Connect to VPN then launch: $APPIMAGE"
     ;;
