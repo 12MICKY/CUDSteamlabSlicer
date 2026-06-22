@@ -1,5 +1,10 @@
 [
   {
+    "name": "Snapmaker U1",
+    "ip": "10.15.5.66",
+    "apikey": "d24293eb7f22427d9882d633d59f81e4"
+  },
+  {
     "name": "Snapmaker U1-1",
     "ip": "10.15.5.66",
     "apikey": "d24293eb7f22427d9882d633d59f81e4"

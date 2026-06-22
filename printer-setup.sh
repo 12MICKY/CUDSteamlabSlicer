@@ -37,6 +37,7 @@ EOF
   echo "✓ Snapmaker ${name}  ${ip}"
 }
 
+setup_printer "U1"   "10.15.5.66"  "d24293eb7f22427d9882d633d59f81e4"
 setup_printer "U1-1" "10.15.5.66"  "d24293eb7f22427d9882d633d59f81e4"
 setup_printer "U1-2" "10.15.5.160" "f9e7ee5e738748c48bc04858f0fb6eea"
 setup_printer "U1-3" "10.15.5.152" "25f37875b8914dcc9481b1ac5de50997"
